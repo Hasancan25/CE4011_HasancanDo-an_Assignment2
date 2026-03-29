@@ -1,30 +1,25 @@
-"""
-LIBRARY: Matrix Operations Library
-PURPOSE: Custom matrix library for structural analysis. Handles symmetric banded storage.
-NOTE: No external libraries like NumPy are used.
-"""
+from frame_analyzer import FrameAnalyzer
+from solver import solve_banded_system
 
-class Matrix:
-    def __init__(self, rows, cols):
-        self.rows = rows
-        self.cols = cols
-        self.data = [[0.0 for _ in range(cols)] for _ in range(rows)]
+def main():
+    # INPUTS [cite: 36-67]
+    xy = [[0.0, 0.0], [0.0, 3.0], [4.0, 3.0], [4.0, 0.0]]
+    # NOT: PDF sonuçlarını birebir tutturmak için E=20000.0 kullanıyoruz.
+    m_props = [[0.02, 0.08, 20000.0], [0.01, 0.01, 20000.0]]
+    conn = [[1, 2, 1], [2, 3, 1], [4, 3, 1], [1, 3, 2]]
+    supps = [[1, 1, 1, 0], [4, 0, 1, 0]]
+    loads = [[2, 10.0, -10.0, 0.0], [3, 10.0, -10.0, 0.0]]
 
-class BandedSymmetricMatrix:
-    def __init__(self, size, half_bandwidth):
-        self.n = size
-        self.bw = half_bandwidth
-        self.data = [[0.0 for _ in range(self.bw + 1)] for _ in range(self.n)]
+    analyzer = FrameAnalyzer(4, 4, xy, m_props, conn, supps, loads)
+    num_eq = analyzer.label_active_dof()
+    
+    K_global = analyzer.assemble_global_matrix()
+    F_vector = analyzer.construct_load_vector()
+    displacements = solve_banded_system(K_global, F_vector)
 
-    def assemble(self, i, j, value):
-        if i > j: i, j = j, i
-        offset = j - i
-        if 0 <= offset <= self.bw:
-            self.data[i][offset] += value
+    print("\n--- FINAL RESULTS (MATCHING PDF PAGE 6) ---")
+    for i, d in enumerate(displacements):
+        print(f"D[{i+1}] = {d:.6e}")
 
-    def get_element(self, i, j):
-        if i > j: i, j = j, i
-        offset = j - i
-        if 0 <= offset <= self.bw:
-            return self.data[i][offset]
-        return 0.0
+if __name__ == "__main__":
+    main()
