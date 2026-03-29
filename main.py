@@ -1,63 +1,52 @@
 """
-PROGRAM: Frame Analysis Software
+PROGRAM: Frame Analysis Software - Final Execution
 AUTHOR: Hasancan Dogan
-DATE: 29.03.2026
-PURPOSE: Main entry point that defines structural data and executes the analysis.
+PURPOSE: Performs full analysis of the sample frame and prints verification results.
 """
 
+from frame_analyzer import FrameAnalyzer
+from solver import solve_banded_system
+
 def main():
-    """
-    PURPOSE: Initialize the sample structure data (Steps 1-6) and start analysis.
-    INPUTS: None (Hardcoded sample structure data).
-    OUTPUTS: Execution status.
-    """
-    # --- STEP 1: Basic structural parameters [cite: 154] ---
+    # --- A. INPUT PHASE (Steps 1-6) [cite: 152-174] ---
     num_node = 4
     num_elem = 4
-    num_support = 2
-    num_load_joint = 2
+    # Coordinates [cite: 158]
+    xy_coords = [[0.0, 0.0], [0.0, 3.0], [4.0, 3.0], [4.0, 0.0]]
+    # Material properties [cite: 161]
+    material_props = [[0.02, 0.08, 20000.0], [0.01, 0.01, 20000.0]]
+    # Connectivity [cite: 165]
+    connectivity = [[1, 2, 1], [2, 3, 1], [4, 3, 1], [1, 3, 2]]
+    # Support conditions [cite: 170]
+    supports = [[1, 1, 1, 0], [4, 0, 1, 0]]
+    # Applied loads [cite: 174]
+    loads = [[2, 10.0, -10.0, 0.0], [3, 10.0, -10.0, 0.0]]
 
-    # --- STEP 2: Nodal Coordinates (XY Array) [cite: 158] ---
-    # XY = [X_coord, Y_coord] for each node
-    xy_coords = [
-        [0.0, 0.0], # Node 1
-        [0.0, 3.0], # Node 2
-        [4.0, 3.0], # Node 3
-        [4.0, 0.0]  # Node 4
-    ]
+    # Initialize the Analyzer
+    analyzer = FrameAnalyzer(num_node, num_elem, xy_coords, material_props, connectivity, supports, loads)
 
-    # --- STEP 3: Material Properties (M Array) [cite: 161] ---
-    # M = [Area (m2), Inertia (m4), Elasticity (MPa)]
-    material_props = [
-        [0.02, 0.08, 20000.0], # Property Set 1 (for members 1-3)
-        [0.01, 0.01, 20000.0]  # Property Set 2 (for member 4)
-    ]
+    # --- B. EQUATION NUMBERING (Steps 7-8) [cite: 175-198] ---
+    num_eq = analyzer.label_active_dof()
+    print(f"Sistem Serbestlik Derecesi (NumEq): {num_eq}") # Beklenen: 9
 
-    # --- STEP 4: Element Connectivity (C Array) [cite: 165] ---
-    # C = [StartNode, EndNode, MaterialSetID]
-    connectivity = [
-        [1, 2, 1], # Element 1
-        [2, 3, 1], # Element 2
-        [4, 3, 1], # Element 3
-        [1, 3, 2]  # Element 4
-    ]
+    # --- C. GLOBAL MATRIX ASSEMBLY (Steps 9-10) [cite: 199-254] ---
+    print("Küresel Rijitlik Matrisi (K) Montajlanıyor...")
+    K_global = analyzer.assemble_global_matrix()
 
-    # --- STEP 5: Boundary Conditions (S Array) [cite: 170] ---
-    # S = [NodeID, X_code, Y_code, Z_rot_code] (1: restrained, 0: free)
-    supports = [
-        [1, 1, 1, 0], # Node 1: Fixed in X and Y, rotation free
-        [4, 0, 1, 0]  # Node 4: Fixed in Y, translation X and rotation free
-    ]
+    # --- D. GLOBAL LOAD VECTOR (Step 11) [cite: 255-263] ---
+    F_vector = analyzer.construct_load_vector()
+    print("Yük Vektörü (F):", [round(f, 2) for f in F_vector])
 
-    # --- STEP 6: Applied Nodal Loads (L Array) [cite: 174] ---
-    # L = [NodeID, Force_X, Force_Y, Moment_Z]
-    loads = [
-        [2, 10.0, -10.0, 0.0], # Applied load at Node 2
-        [3, 10.0, -10.0, 0.0]  # Applied load at Node 3
-    ]
+    # --- E. STRUCTURAL DISPLACEMENTS (Step 12) [cite: 264-265] ---
+    print("Sistem Çözülüyor (Gauss Elimination)...")
+    # Kendi solver'ımızı ve banded matrix yapımızı kullanıyoruz
+    displacements = solve_banded_system(K_global, F_vector)
 
-    print("--- STEP A: INPUT PHASE COMPLETE ---")
-    print(f"Structure with {num_node} nodes and {num_elem} elements initialized.")
+    # --- G. RESULTS VERIFICATION [cite: 333-342] ---
+    print("\n--- ANALİZ SONUÇLARI: DÜĞÜM NOKTASI YER DEĞİŞTİRMELERİ (D) ---")
+    # PDF'deki sonuçlarla karşılaştırma için
+    for i, d in enumerate(displacements):
+        print(f"D[{i+1}] = {d:.6e}")
 
 if __name__ == "__main__":
     main()
