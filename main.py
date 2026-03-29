@@ -23,3 +23,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+# Analizi tamamla ve eleman kuvvetlerini yazdır
+analyzer.calculate_member_forces(displacements)
